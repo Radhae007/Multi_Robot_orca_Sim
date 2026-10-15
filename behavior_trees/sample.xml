@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<!--
+  Nav2 Behavior Tree XML for Dynamic Multi-Robot Proximity Switching
+  Switches between standard DWB path tracking and ORCA reciprocal collision avoidance controller
+  based on topic status /in_orca_zone.
+-->
+<root main_tree_to_execute="MainTree">
+  <BehaviorTree ID="MainTree">
+    <RecoveryNode number_of_retries="6" name="NavigateRecovery">
+      <PipelineSequence name="NavigateWithDynamicControllerSwitch">
+        <RateController hz="1.0">
+          <RecoveryNode number_of_retries="1" name="ComputePathToPoseRecovery">
+            <ComputePathToPose goal="{goal}" path="{path}" planner_id="GridBased"/>
+            <ClearEntireCostmap name="ClearGlobalCostmap-context" service_name="global_costmap/clear_entirely_global_costmap"/>
+          </RecoveryNode>
+        </RateController>
+        <RecoveryNode number_of_retries="1" name="FollowPathRecovery">
+          <Fallback name="ControllerSelectorFallback">
+            <!-- Pipeline A: Proximity / ORCA Zone Active -->
+            <Sequence name="ORCAPipeline">
+              <IsTopicActive topic_name="in_orca_zone"/>
+              <FollowPath path="{path}" controller_id="FollowPathORCA" goal_checker_id="goal_checker"/>
+            </Sequence>
+            <!-- Pipeline B: Default DWB Controller -->
+            <Sequence name="DWBPipeline">
+              <FollowPath path="{path}" controller_id="FollowPathDWB" goal_checker_id="goal_checker"/>
+            </Sequence>
+          </Fallback>
+          <ClearEntireCostmap name="ClearLocalCostmap-context" service_name="local_costmap/clear_entirely_local_costmap"/>
+        </RecoveryNode>
+      </PipelineSequence>
+
+      <ReactiveFallback name="RecoveryFallback">
+        <GoalUpdated/>
+        <SequenceStar name="RecoveryActions">
+          <ClearEntireCostmap name="ClearLocalCostmap-subnode" service_name="local_costmap/clear_entirely_local_costmap"/>
+          <ClearEntireCostmap name="ClearGlobalCostmap-subnode" service_name="global_costmap/clear_entirely_global_costmap"/>
+          <Spin spin_dist="1.57"/>
+          <Wait wait_duration="5"/>
+        </SequenceStar>
+      </ReactiveFallback>
+    </RecoveryNode>
+  </BehaviorTree>
+
+  <TreeNodesModel>
+    <!-- ############################### CUSTOM NODES ################################# -->
+    <Condition ID="IsTopicActive">
+      <input_port name="topic_name">Topic to check for activity</input_port>
+    </Condition>
+
+    <!-- ############################### ACTION NODES ################################# -->
+    <Action ID="ClearEntireCostmap">
+      <input_port name="service_name">Service name</input_port>
+      <input_port name="server_timeout">Server timeout</input_port>
+    </Action>
+
+    <Action ID="ComputePathToPose">
+      <input_port name="goal">Destination to plan to</input_port>
+      <input_port name="start">Start pose of the path if overriding current robot pose</input_port>
+      <input_port name="planner_id">Mapped name to the planner plugin type to use</input_port>
+      <input_port name="server_name">Server name</input_port>
+      <input_port name="server_timeout">Server timeout</input_port>
+      <output_port name="path">Path created by ComputePathToPose node</output_port>
+    </Action>
+
+    <Action ID="FollowPath">
+      <input_port name="controller_id" default="FollowPath"/>
+      <input_port name="path">Path to follow</input_port>
+      <input_port name="goal_checker_id">Goal checker</input_port>
+      <input_port name="server_name">Server name</input_port>
+      <input_port name="server_timeout">Server timeout</input_port>
+    </Action>
+
+    <Action ID="Spin">
+      <input_port name="spin_dist">Spin distance</input_port>
+      <input_port name="time_allowance">Allowed time for spinning</input_port>
+      <input_port name="server_name">Server name</input_port>
+      <input_port name="server_timeout">Server timeout</input_port>
+    </Action>
+
+    <Action ID="Wait">
+      <input_port name="wait_duration">Wait time</input_port>
+      <input_port name="server_name">Server name</input_port>
+      <input_port name="server_timeout">Server timeout</input_port>
+    </Action>
+
+    <!-- ############################### CONDITION NODES ############################## -->
+    <Condition ID="GoalUpdated"/>
+
+    <!-- ############################### CONTROL NODES ################################ -->
+    <Control ID="PipelineSequence"/>
+    <Control ID="RecoveryNode">
+      <input_port name="number_of_retries">Number of retries</input_port>
+    </Control>
+    <Control ID="SequenceStar"/>
+
+    <!-- ############################### DECORATOR NODES ############################## -->
+    <Decorator ID="RateController">
+      <input_port name="hz">Rate</input_port>
+    </Decorator>
+
+  </TreeNodesModel>
+</root>

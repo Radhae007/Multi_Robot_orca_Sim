@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fleet Manager</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap');
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #121212;
+            color: #ffffff;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 350px;
+            background-color: #1e1e1e;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #333;
+            box-shadow: 4px 0 15px rgba(0,0,0,0.5);
+        }
+
+        .sidebar h2 {
+            margin-bottom: 20px;
+            font-weight: 600;
+            color: #4CAF50;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-size: 1.2rem;
+        }
+
+        .robot-card {
+            background-color: #2c2c2c;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            transition: transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .robot-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .robot-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .robot-id {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .battery-container {
+            width: 100%;
+            height: 12px;
+            background-color: #444;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .battery-fill {
+            height: 100%;
+            width: 100%;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        .map-container {
+            flex-grow: 1;
+            position: relative;
+            background-color: #0d0d0d;
+            background-image: radial-gradient(#333 1px, transparent 1px);
+            background-size: 40px 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 5m x 5m arena mapped to 600x600 pixels */
+        .map-area {
+            width: 600px;
+            height: 600px;
+            background-color: rgba(30, 30, 30, 0.8);
+            border: 2px solid #333;
+            border-radius: 8px;
+            position: relative;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .robot-dot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: #4CAF50;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #4CAF50;
+            transition: left 0.2s linear, top 0.2s linear;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: #000;
+        }
+        
+        .robot-heading {
+            position: absolute;
+            width: 2px;
+            height: 15px;
+            background-color: white;
+            top: -10px;
+            left: 9px;
+            transform-origin: bottom center;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <h2>Live Fleet Status</h2>
+        <div id="fleet-list">
+            <!-- Robot cards will be injected here -->
+        </div>
+    </div>
+
+    <div class="map-container">
+        <div class="map-area" id="map-area">
+            <!-- Map represents 5m x 5m. Center is (0,0). So bounds are -2.5 to 2.5 -->
+        </div>
+    </div>
+
+    <script>
+        const fleetList = document.getElementById('fleet-list');
+        const mapArea = document.getElementById('map-area');
+        
+        // Map 5m x 5m physical space to 600px x 600px div
+        const MAP_SIZE = 600;
+        const PHYS_SIZE = 5.0; 
+        const SCALE = MAP_SIZE / PHYS_SIZE;
+
+        function getBatteryColor(pct) {
+            if(pct > 50) return '#4CAF50'; // Green
+            if(pct > 20) return '#FFC107'; // Yellow
+            return '#F44336';              // Red
+        }
+
+        async function fetchState() {
+            try {
+                const res = await fetch('/api/state');
+                const data = await res.json();
+                updateUI(data);
+            } catch(e) {
+                console.error("Waiting for backend...");
+            }
+        }
+
+        function updateUI(data) {
+            Object.keys(data).sort().forEach(robotId => {
+                const state = data[robotId];
+                
+                // --- Update Sidebar Card ---
+                let card = document.getElementById(`card-${robotId}`);
+                if(!card) {
+                    card = document.createElement('div');
+                    card.className = 'robot-card';
+                    card.id = `card-${robotId}`;
+                    card.innerHTML = `
+                        <div class="robot-header">
+                            <span class="robot-id">${robotId.toUpperCase()}</span>
+                            <span id="bat-text-${robotId}" style="font-weight:600;">100%</span>
+                        </div>
+                        <div class="battery-container">
+                            <div class="battery-fill" id="bat-fill-${robotId}"></div>
+                        </div>
+                        <div class="stat-row">
+                            <span>Velocity:</span>
+                            <span id="vel-${robotId}">0.00 m/s</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>Position:</span>
+                            <span id="pos-${robotId}">(0.0, 0.0)</span>
+                        </div>
+                    `;
+                    fleetList.appendChild(card);
+                }
+
+                // Update Card Values
+                document.getElementById(`bat-text-${robotId}`).innerText = `${state.battery.toFixed(1)}%`;
+                const fill = document.getElementById(`bat-fill-${robotId}`);
+                fill.style.width = `${state.battery}%`;
+                fill.style.backgroundColor = getBatteryColor(state.battery);
+                
+                document.getElementById(`vel-${robotId}`).innerText = `${state.v.toFixed(2)} m/s`;
+                document.getElementById(`pos-${robotId}`).innerText = `(${state.x.toFixed(1)}, ${state.y.toFixed(1)})`;
+
+                // --- Update Map Dot ---
+                let dot = document.getElementById(`dot-${robotId}`);
+                if(!dot) {
+                    dot = document.createElement('div');
+                    dot.className = 'robot-dot';
+                    dot.id = `dot-${robotId}`;
+                    dot.innerText = robotId.replace('tb', '');
+                    
+                    const heading = document.createElement('div');
+                    heading.className = 'robot-heading';
+                    heading.id = `heading-${robotId}`;
+                    dot.appendChild(heading);
+                    
+                    mapArea.appendChild(dot);
+                }
+
+                // Convert physical coords to pixel coords
+                // Physical (0,0) is center of map.
+                const pxX = (state.x + (PHYS_SIZE/2)) * SCALE;
+                // Y is inverted in web vs ROS usually, but let's map directly for now
+                const pxY = MAP_SIZE - ((state.y + (PHYS_SIZE/2)) * SCALE); 
+
+                dot.style.left = `${pxX}px`;
+                dot.style.top = `${pxY}px`;
+                
+                // Update heading rotation
+                const heading = document.getElementById(`heading-${robotId}`);
+                // Convert radians to degrees, subtract 90 since top is 0 in web
+                const deg = (state.yaw * 180 / Math.PI);
+                dot.style.transform = `translate(-50%, -50%) rotate(${-deg}deg)`;
+                // Actually, rotating the whole dot rotates the text. Let's rotate just the heading relative to the dot's center?
+                // The CSS above translates and rotates. The text will rotate, which is fine.
+            });
+        }
+
+        // Poll every 200ms (5Hz)
+        setInterval(fetchState, 200);
+    </script>
+</body>
+</html>

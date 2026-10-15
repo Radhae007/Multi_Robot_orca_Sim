@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+<sdf version="1.6">
+  <world name="simple_warehouse">
+
+    <!-- Ground Plane -->
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+
+    <!-- Sun Light Source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+
+    <scene>
+      <shadows>false</shadows>
+      <ambient>0.6 0.6 0.6 1.0</ambient>
+      <background>0.8 0.8 0.8 1.0</background>
+    </scene>
+
+    <gui fullscreen='0'>
+      <camera name='user_camera'>
+        <pose frame=''>0.0 0.0 12.0 0 1.5708 1.5708</pose>
+        <view_controller>orbit</view_controller>
+        <projection_type>perspective</projection_type>
+      </camera>
+    </gui>
+
+    <physics type="ode">
+      <real_time_update_rate>1000.0</real_time_update_rate>
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>150</iters>
+          <sor>1.400000</sor>
+        </solver>
+        <constraints>
+          <cfm>0.00001</cfm>
+          <erp>0.2</erp>
+        </constraints>
+      </ode>
+    </physics>
+
+    <!-- Outer Warehouse Enclosure Walls -->
+    <model name="warehouse_walls">
+      <static>true</static>
+      <!-- North Wall -->
+      <link name="wall_north">
+        <pose>0 6 1 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>12 0.2 2</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>12 0.2 2</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/DarkGrey</name></script></material>
+        </visual>
+      </link>
+      <!-- South Wall -->
+      <link name="wall_south">
+        <pose>0 -6 1 0 0 0</pose>
+        <collision name="collision"><geometry><box><size>12 0.2 2</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>12 0.2 2</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/DarkGrey</name></script></material>
+        </visual>
+      </link>
+      <!-- East Wall -->
+      <link name="wall_east">
+        <pose>6 0 1 0 0 1.5708</pose>
+        <collision name="collision"><geometry><box><size>12 0.2 2</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>12 0.2 2</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/DarkGrey</name></script></material>
+        </visual>
+      </link>
+      <!-- West Wall -->
+      <link name="wall_west">
+        <pose>-6 0 1 0 0 1.5708</pose>
+        <collision name="collision"><geometry><box><size>12 0.2 2</size></box></geometry></collision>
+        <visual name="visual">
+          <geometry><box><size>12 0.2 2</size></box></geometry>
+          <material><script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/DarkGrey</name></script></material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Warehouse Storage Rack 1 (Aisle Left) -->
+    <model name="rack_1">
+      <static>true</static>
+      <pose>-3.0 0.0 0.75 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.0 6.0 1.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.0 6.0 1.5</size></box></geometry>
+          <material>
+            <script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Orange</name></script>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- Warehouse Storage Rack 2 (Aisle Right) -->
+    <model name="rack_2">
+      <static>true</static>
+      <pose>3.0 0.0 0.75 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>1.0 6.0 1.5</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>1.0 6.0 1.5</size></box></geometry>
+          <material>
+            <script><uri>file://media/materials/scripts/gazebo.material</uri><name>Gazebo/Orange</name></script>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+  </world>
+</sdf>

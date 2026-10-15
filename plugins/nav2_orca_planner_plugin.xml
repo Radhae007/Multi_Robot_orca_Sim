@@ -1,0 +1,7 @@
+<library path="nav2_orca_planner">
+  <class name="nav2_orca_planner/OrcaLocalPlanner" type="nav2_orca_planner::OrcaLocalPlanner" base_class_type="nav2_core::Controller">
+    <description>
+      Nav2 Controller plugin implementing Optimal Reciprocal Collision Avoidance (ORCA) for multi-robot navigation.
+    </description>
+  </class>
+</library>
