@@ -1,7 +1,7 @@
 # Multi-Robot Navigation with ORCA Collision Avoidance
 ### ROS 2 Humble | Gazebo | Nav2 | TurtleBot3
 
-![ORCA Multi-Robot Demo](assets/demo.gif)
+![ORCA Multi-Robot Demo](assets/Multi_robot_sim.gif)
 
 > A decentralized multi-robot navigation system for 4 TurtleBot3 Waffle robots in a simulated warehouse environment. Robots navigate autonomously using Nav2 while avoiding inter-robot collisions using a custom Reciprocal Velocity Obstacle (RVO/ORCA) algorithm broadcasted over a P2P state-sharing network.
 
