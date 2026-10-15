@@ -176,6 +176,3 @@ builtin_interfaces/Time stamp
 
 ---
 
-## License
-
-Apache 2.0
